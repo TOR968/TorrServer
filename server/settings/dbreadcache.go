@@ -60,12 +60,14 @@ func (v *DBReadCache) Get(xPath, name string) []byte {
 
 func (v *DBReadCache) Set(xPath, name string, value []byte) {
 	if ReadOnly {
-		log.TLogln("DB.Set: Read-only DB mode!", name)
+		if IsDebug() {
+			log.TLogln("DBReadCache.Set: Read-only DB mode!", name)
+		}
 		return
 	}
 	// Проверяем, не закрыта ли база
 	if v.dataCache == nil || v.db == nil {
-		log.TLogln("DB.Set: no dataCache or DB is closed, cannot set", name)
+		log.TLogln("DBReadCache.Set: no dataCache or DB is closed, cannot set", name)
 		return
 	}
 
@@ -114,12 +116,14 @@ func (v *DBReadCache) List(xPath string) []string {
 
 func (v *DBReadCache) Rem(xPath, name string) {
 	if ReadOnly {
-		log.TLogln("DB.Rem: Read-only DB mode!", name)
+		if IsDebug() {
+			log.TLogln("DBReadCache.Rem: Read-only DB mode!", name)
+		}
 		return
 	}
 	// Проверяем, не закрыта ли база
 	if v.dataCache == nil || v.db == nil {
-		log.TLogln("DB.Rem: no dataCache or DB is closed, cannot remove", name)
+		log.TLogln("DBReadCache.Rem: no dataCache or DB is closed, cannot remove", name)
 		return
 	}
 
@@ -136,6 +140,34 @@ func (v *DBReadCache) Rem(xPath, name string) {
 	}
 
 	v.db.Rem(xPath, name)
+}
+
+func (v *DBReadCache) Clear(xPath string) {
+	if ReadOnly {
+		if IsDebug() {
+			log.TLogln("DBReadCache.Clear: Read-only DB mode!", xPath)
+		}
+		return
+	}
+
+	// Clear from underlying DB first
+	if v.db != nil {
+		v.db.Clear(xPath)
+	}
+
+	// Clear cache
+	v.listCacheMutex.Lock()
+	delete(v.listCache, xPath)
+	v.listCacheMutex.Unlock()
+
+	// Clear data cache entries for this xPath
+	v.dataCacheMutex.Lock()
+	for key := range v.dataCache {
+		if key[0] == xPath {
+			delete(v.dataCache, key)
+		}
+	}
+	v.dataCacheMutex.Unlock()
 }
 
 func (v *DBReadCache) makeDataCacheKey(xPath, name string) [2]string {

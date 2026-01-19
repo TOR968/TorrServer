@@ -55,8 +55,15 @@ func (v *XPathDBRouter) RegisterRoute(db TorrServerDB, xPath string) error {
 	sort.Slice(v.routes, func(iLeft, iRight int) bool {
 		return len(v.routes[iLeft]) > len(v.routes[iRight])
 	})
-	v.log(fmt.Sprintf("Registered new route \"%s\" for DB \"%s\", total %d routes", newRoute, v.getDBName(db), len(v.routes)))
+	v.log(fmt.Sprintf("Registered new route \"%s\" for DB \"%s\", total %d routes", getDefaultRoureName(newRoute), v.getDBName(db), len(v.routes)))
 	return nil
+}
+
+func getDefaultRoureName(route string) string {
+	if len(route) > 0 {
+		return route
+	}
+	return "default"
 }
 
 func (v *XPathDBRouter) xPathToRoute(xPath string) string {
@@ -93,6 +100,10 @@ func (v *XPathDBRouter) List(xPath string) []string {
 
 func (v *XPathDBRouter) Rem(xPath, name string) {
 	v.getDBForXPath(xPath).Rem(xPath, name)
+}
+
+func (v *XPathDBRouter) Clear(xPath string) {
+	v.getDBForXPath(xPath).Clear(xPath)
 }
 
 func (v *XPathDBRouter) CloseDB() {
